@@ -1,0 +1,225 @@
+Iteration 0 total residual error 1928240.54736828
+Iteration 0 avg local PageRank iterations 16.029411
+Iteration 0 avg residual error 2.814004855841513
+Iteration 1 total residual error 26296.92068734
+Iteration 1 avg local PageRank iterations 7.867647
+Iteration 1 avg residual error 0.03837677960296543
+Iteration 2 total residual error 16250.38117917
+Iteration 2 avg local PageRank iterations 5.897059
+Iteration 2 avg residual error 0.02371522142808984
+Iteration 3 total residual error 6737.78492783
+Iteration 3 avg local PageRank iterations 3.8823528
+Iteration 3 avg residual error 0.009832880825168191
+Iteration 4 total residual error 2627.60426182
+Iteration 4 avg local PageRank iterations 2.5
+Iteration 4 avg residual error 0.0038346310900281657
+Iteration 5 total residual error 738.03512344
+Iteration 5 avg local PageRank iterations 1.4264706
+Iteration 5 avg residual error 0.0010770618966478409
+Iteration 6 total residual error 448.88373902
+Iteration 6 avg local PageRank iterations 1.1764706
+Iteration 6 avg residual error 6.550847730251157E-4
+Selected Answers:
+Node[0] PR 1.56559214e-05
+Node[1] PR 5.31757688e-05
+Selected Answers:
+Node[10328] PR 4.31387696e-07
+Node[10329] PR 2.43319569e-07
+Selected Answers:
+Node[20373] PR 2.18904601e-07
+Node[20374] PR 2.18904601e-07
+Selected Answers:
+Node[30629] PR 2.65074020e-07
+Node[30630] PR 2.18904601e-07
+Selected Answers:
+Node[40645] PR 2.32290086e-05
+Node[40646] PR 2.32290086e-05
+Selected Answers:
+Node[50462] PR 5.01340071e-03
+Node[50463] PR 5.11039682e-03
+Selected Answers:
+Node[60841] PR 1.19871523e-05
+Node[60842] PR 2.88430787e-06
+Selected Answers:
+Node[70591] PR 2.32290086e-05
+Node[70592] PR 2.32290086e-05
+Selected Answers:
+Node[80118] PR 5.13833810e-07
+Node[80119] PR 9.63787978e-07
+Selected Answers:
+Node[90497] PR 9.62201702e-07
+Node[90498] PR 1.12017062e-05
+Selected Answers:
+Node[100501] PR 1.03363946e-06
+Node[100502] PR 1.20723151e-06
+Selected Answers:
+Node[110567] PR 1.02554212e-03
+Node[110568] PR 1.04837952e-04
+Selected Answers:
+Node[120945] PR 8.22290360e-07
+Node[120946] PR 6.79690233e-07
+Selected Answers:
+Node[130999] PR 2.29009893e-07
+Node[131000] PR 2.29009893e-07
+Selected Answers:
+Node[140574] PR 1.04174165e-03
+Node[140575] PR 2.29009893e-07
+Selected Answers:
+Node[150953] PR 9.88871456e-04
+Node[150954] PR 1.81590658e-03
+Selected Answers:
+Node[161332] PR 2.28554913e-07
+Node[161333] PR 2.28554913e-07
+Selected Answers:
+Node[171154] PR 2.29830900e-07
+Node[171155] PR 2.29830900e-07
+Selected Answers:
+Node[181514] PR 2.24323349e-07
+Node[181515] PR 7.42183943e-04
+Selected Answers:
+Node[191625] PR 2.62889738e-04
+Node[191626] PR 2.18904601e-07
+Selected Answers:
+Node[202004] PR 9.32296293e-07
+Node[202005] PR 9.92674237e-07
+Selected Answers:
+Node[212383] PR 1.22229852e-03
+Node[212384] PR 2.18904601e-07
+Selected Answers:
+Node[222762] PR 2.28541634e-07
+Node[222763] PR 2.28541634e-07
+Selected Answers:
+Node[232593] PR 2.36873791e-07
+Node[232594] PR 2.96867257e-07
+Selected Answers:
+Node[242878] PR 8.23387304e-07
+Node[242879] PR 6.16033837e-07
+Selected Answers:
+Node[252938] PR 5.72098818e-06
+Node[252939] PR 5.77722836e-07
+Selected Answers:
+Node[263149] PR 1.14641382e-05
+Node[263150] PR 2.49763724e-06
+Selected Answers:
+Node[273210] PR 2.74425683e-05
+Node[273211] PR 2.40707107e-06
+Selected Answers:
+Node[283473] PR 2.87060381e-07
+Node[283474] PR 2.87060381e-07
+Selected Answers:
+Node[293255] PR 2.70716260e-06
+Node[293256] PR 1.56382139e-05
+Selected Answers:
+Node[303043] PR 1.00015052e-06
+Node[303044] PR 5.43790373e-06
+Selected Answers:
+Node[313370] PR 2.54904983e-07
+Node[313371] PR 2.33489309e-05
+Selected Answers:
+Node[323522] PR 5.40608667e-07
+Node[323523] PR 1.77164624e-06
+Selected Answers:
+Node[333883] PR 1.93983105e-05
+Node[333884] PR 4.33045205e-06
+Selected Answers:
+Node[343663] PR 2.07279072e-06
+Node[343664] PR 3.63814458e-07
+Selected Answers:
+Node[353645] PR 1.96358317e-06
+Node[353646] PR 9.40452375e-07
+Selected Answers:
+Node[363929] PR 1.45235757e-05
+Node[363930] PR 4.68068149e-07
+Selected Answers:
+Node[374236] PR 2.39348432e-07
+Node[374237] PR 9.20869943e-06
+Selected Answers:
+Node[384554] PR 6.49768712e-05
+Node[384555] PR 5.23832977e-06
+Selected Answers:
+Node[394929] PR 3.98057014e-06
+Node[394930] PR 2.67049365e-06
+Selected Answers:
+Node[404712] PR 7.10276430e-07
+Node[404713] PR 8.21204366e-07
+Selected Answers:
+Node[414617] PR 3.70047295e-07
+Node[414618] PR 2.80927572e-07
+Selected Answers:
+Node[424747] PR 1.98636773e-06
+Node[424748] PR 4.52434512e-06
+Selected Answers:
+Node[434707] PR 5.49753271e-07
+Node[434708] PR 3.51400976e-06
+Selected Answers:
+Node[444489] PR 5.11376527e-07
+Node[444490] PR 2.40654272e-07
+Selected Answers:
+Node[454285] PR 3.52327375e-07
+Node[454286] PR 3.18730839e-07
+Selected Answers:
+Node[464398] PR 5.26532691e-07
+Node[464399] PR 5.26532691e-07
+Selected Answers:
+Node[474196] PR 5.31303203e-07
+Node[474197] PR 8.39979504e-07
+Selected Answers:
+Node[484050] PR 1.65334529e-05
+Node[484051] PR 1.24932657e-05
+Selected Answers:
+Node[493968] PR 7.75420484e-07
+Node[493969] PR 1.38930087e-06
+Selected Answers:
+Node[503752] PR 7.90974486e-07
+Node[503753] PR 7.90974486e-07
+Selected Answers:
+Node[514131] PR 1.12100063e-03
+Node[514132] PR 2.65010965e-05
+Selected Answers:
+Node[524510] PR 8.93480205e-04
+Node[524511] PR 6.67839253e-05
+Selected Answers:
+Node[534709] PR 9.05802398e-03
+Node[534710] PR 4.61018759e-06
+Selected Answers:
+Node[545088] PR 1.78096566e-03
+Node[545089] PR 3.31710599e-05
+Selected Answers:
+Node[555467] PR 1.82151690e-03
+Node[555468] PR 7.56709251e-07
+Selected Answers:
+Node[565846] PR 2.18904601e-07
+Node[565847] PR 2.18904601e-07
+Selected Answers:
+Node[576225] PR 1.12763878e-05
+Node[576226] PR 2.18904601e-07
+Selected Answers:
+Node[586604] PR 3.94311461e-04
+Node[586605] PR 4.12579578e-07
+Selected Answers:
+Node[596585] PR 1.48393792e-06
+Node[596586] PR 2.30222827e-06
+Selected Answers:
+Node[606367] PR 3.17736816e-07
+Node[606368] PR 2.24911666e-07
+Selected Answers:
+Node[616148] PR 9.78535430e-07
+Node[616149] PR 4.31964473e-07
+Selected Answers:
+Node[626448] PR 2.18904601e-07
+Node[626449] PR 2.58094563e-07
+Selected Answers:
+Node[636240] PR 2.28677864e-07
+Node[636241] PR 2.29009893e-07
+Selected Answers:
+Node[646022] PR 5.68201890e-07
+Node[646023] PR 4.10937679e-07
+Selected Answers:
+Node[655804] PR 2.28677864e-07
+Node[655805] PR 2.18904601e-07
+Selected Answers:
+Node[665666] PR 2.56118384e-07
+Node[665667] PR 4.05830564e-07
+Selected Answers:
+Node[675448] PR 2.18904601e-07
+Node[675449] PR 4.88454792e-06

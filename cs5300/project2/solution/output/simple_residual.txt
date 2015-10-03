@@ -1,0 +1,6 @@
+Iteration 0 avg error 2.3387055610524934
+Iteration 1 avg error 0.32286045298658844
+Iteration 2 avg error 0.19214149161595376
+Iteration 3 avg error 0.09413164324387432
+Iteration 4 avg error 0.06285551333129022
+Iteration 5 avg error 0.033981538169665655

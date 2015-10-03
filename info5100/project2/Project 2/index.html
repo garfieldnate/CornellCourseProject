@@ -1,0 +1,1355 @@
+<html>
+<head>
+<script src="d3.v3.min.js" charset="utf-8"></script>
+<script src="topojson.v1.min.js"></script>
+<script src="jquery-1.11.2.min.js"></script>
+<link rel="stylesheet" href="bootstrap.min.css">
+<link rel="stylesheet" href="bootstrap-theme.min.css">
+<script src="bootstrap.min.js"></script>
+<script src="d3.tip.v0.6.3.js"></script>
+</head>
+
+
+<body>
+  <style>
+      p{
+        text-align: justify;
+        font-size: 15px;
+        color: #848484;
+      }
+      .area{
+        fill: #CEE3F6;
+        stroke-width: 0;
+      }
+      .background{
+        fill: none;
+        pointer-events: all;
+      }
+      .bar{
+        fill:steelblue;
+      }
+      .bar:hover{
+        fill:orangered;
+      }
+      .d3-tip{
+        line-height: 1;
+        font-weight: bold;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+      }
+      /* Creates a small triangle extender for the tooltip */
+      .d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 10px;
+        width: 100%;
+        line-height: 1;
+        color: rgba(0, 0, 0, 0.8);
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+      }
+
+      /* Style northward tooltips differently */
+      .d3-tip.n:after {
+        margin: -1px 0 0 0;
+        top: 100%;
+        left: 0;
+      }
+      .axis text{
+        font: 10px sans-serif;
+      }
+      .axis path, .axis line {
+        fill: none;
+        stroke: #575757;
+        stroke-width:1;
+        opacity: 0.8;
+        shape-rendering: crispEdges;
+      }
+
+      #map .active{
+        fill: #FF4000 !important;
+      }
+
+      #map text.active{
+        font-size: 12px;
+        font-weight: bold;
+        fill: #fff;
+        stroke-width: .5px;
+        fill: #fff !important;
+        stroke: #000;
+      }
+
+      .line {
+        fill: none;
+        stroke: steelblue;
+        stroke-width: 3px;
+      }
+      .overlay {
+      fill: none;
+      pointer-events: all;
+      }
+
+      .focus circle {
+      fill: none;
+      stroke: steelblue;
+      }
+      .focus line {
+      fill: none;
+      stroke: steelblue;
+      }
+      .selected {
+     fill: #afa2dc;
+     stroke: #2f225d;
+     }
+
+    .brush .extent {
+    stroke: #f0f0f0;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+    }
+
+    #l2{
+    position: relative;
+    top: -20;
+    left: 50;
+    border: blue 1px;
+    width: 160px;
+    height: 20px;
+    }
+   .legend {
+    font-size: 15px;
+    z-index:0;
+    margin: 0;
+    margin-top: 0;
+    padding: 0;
+    text-align: center;       
+    }
+   .feature {
+    fill: #ccc;
+    cursor: pointer;
+    }
+   .feature.active {
+    fill: orange;
+    }
+    .mesh {
+    fill: none;
+    stroke: #fff;
+    stroke-width: .5px;
+    stroke-linejoin: round;
+    }
+    .csvTable table {
+    border-collapse: collapse;
+    text-align: left;
+    width: 100%;
+    }
+    .csvTable {
+    font: normal 12px/150% Arial, Helvetica, sans-serif;
+    background: #fff;
+    overflow: hidden;
+    border: 1px solid #069;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    }
+    .csvTable table td, .csvTable table th {
+    padding: 3px 10px;
+    }
+    .csvTable table thead th {
+    background: 0;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#006699',endColorstr='#00557F');
+    background-color: #006D2C;
+    color: #FFF;
+    font-size: 15px;
+    font-weight: 700;
+    border-left: 1px solid #0070A8;
+    }
+    .csvTable table thead th:first-child {
+    border: none;
+    }
+    .csvTable table tbody td {
+    color: #00496B;
+    border-left: 1px solid #E1EEF4;
+    font-size: 12px;
+    border-bottom: 1px solid #E1EEF4;
+    font-weight: 400;
+    }
+    .csvTable table tbody td:first-child {
+      border-left: none;
+    }
+    .csvTable table tbody tr:last-child td {
+    border-bottom: none;
+    }
+    .csvTable tr:hover td {
+    background-color: #069;
+    color: white;
+    }    
+  </style>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Analysis of Exchange Rate</a>
+        </div>
+        <div id="navbar">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Haotong Guo (hg374)</a></li>
+            <li><a href="#">Jiabin Dong (jd836)</a></li>
+            <li><a href="#">Min Xia (mx76)</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+    <br><br>
+
+        <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron">
+      <div class="container">
+          <div class="row">
+            <div class="col-md-9">
+              <h1>Magic Exchange Rate</h1>
+              <p style="color:black">How does exchange rate differ and vary among countries? Is there any chance to make money using exchange rate? Which country is the ideal choice for traveling without spending too much? When is the best time to exchange money?</p>
+          </div>
+        
+        <div class="col-md-3">
+          <img src="logo.png" height="250" width="250">
+        </div>
+       </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="row">
+          <h1>How Much Money Do I Need to Buy a USD?</h1>
+          <h2>If I were in...</h2>
+        <div class="col-md-9">
+      <div id="map"></div>
+      <div id="colorBar"></div>
+      <script>
+      //Processed currency data
+      var currencyData = new Object();
+      //Latest currency data for map color scale
+      var latestCurrency = new Object();
+      //raw currency data
+      var data;
+      
+      //List of currency code
+      var currencyCode = ["AED", "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "COP", "CZK", "EUR", "GBP", "IDR", "ILS", "INR", "JPY", "KRW", "MXN", "NZD", "PLN", "RUB", "SEK", "SGD", "THB", "TRY", "TWD", "ZAR"];
+      //Converts a data string to a JavaScript Date object
+      //To get days of a week: Date.getDay();
+      function parseDate(d){
+        var parts = d.split('/');
+        return new Date(parts[2], parts[0] - 1, parts[1]);
+      }
+      
+      //Get currency data from file
+      d3.csv("data/currency.csv", function(errors, rows){
+        data = rows;
+        for(var i = 0; i < currencyCode.length; i++){
+          currencyData[currencyCode[i]] = findCurrency(currencyCode[i]);
+        }
+        //Find the currency of "s" vs other countries pair
+        function findCurrency(s){
+          var collect = new Object();
+
+          //Put in the currency of "s" vs USD pair(default)
+          collect["USD"] = new Array();
+          for(var i = 0; i < rows.length; i++){
+            if(rows[i][s] != "Bank holiday" && rows[i][s] != ""){
+              collect["USD"].push({Date: parseDate(rows[i].Date),
+                                   Value: +rows[i]["Conversion rate " + s]});
+            }
+          }
+          collect["USD"].sort(function(a, b){
+            return a.Date - b.Date;
+          });
+          //Put in the currency of "s" vs non-USD pair
+          for(var i = 0; i < currencyCode.length; i++){
+            var c = currencyCode[i];
+            if(s != c){
+              collect[c] = new Array();
+              for(var j = 0; j < rows.length; j++){
+                if(rows[j][s] != "Bank holiday" && rows[j][s] != "" && rows[j][c] != ""){
+                  collect[c].push({Date: parseDate(rows[j].Date),
+                                   Value: (+rows[j]["Conversion rate " + s] )/ (+rows[j]["Conversion rate " + c])});
+                }
+              }
+              collect[c].sort(function(a, b){
+                return a.Date - b.Date;
+              });
+            }
+          }
+          return collect;
+        }
+        getLatest();
+        drawMap();
+        //Set the default visualization
+        latestCurrencyGraph("CNY");
+        lineChart("CNY", "USD");
+        pieDayChart("CNY", "USD");
+        pieSeasonChart("CNY", "USD");
+        dayFluctuation("CNY", "USD");
+        d3.select("#Reset").on("click",function(){
+          lineChart("CNY", "USD")});
+      });
+
+      //Get latest currency
+      function getLatest(){
+        for(var i = 0; i < currencyCode.length; i++){
+          latestCurrency[currencyCode[i]] = currencyData[currencyCode[i]]["USD"][currencyData[currencyCode[i]]["USD"].length - 1].Value;
+        }
+        //latestCurrency["USD"] = 1;
+      }
+      //create world map visualization
+      var width = d3.select("#map").style("width");
+      width = +width.substring(0, width.length - 2);
+      var height = 500;
+      var padding = 30;
+      //scale the map to properate size
+      var projection = d3.geo.mercator().scale(130).translate([width/2 - 50, height/2 + 50]);
+      var path = d3.geo.path().projection(projection);
+
+      var mapSvg = d3.select("#map").append("svg")
+          .attr("width", width)
+          .attr("height", height);
+      mapSvg.append("rect")
+        .attr("class", "background")
+        .attr("width", width)
+        .attr("height", height)
+        .on("click", clickMap);
+
+        //Draw the gradient blue bar for reference
+        var colorSvg = d3.select("#colorBar").append("svg")
+           .attr("width", width)
+           .attr("height", 60);
+        var mapGradient = colorSvg.append("svg:defs")
+          .append("svg:linearGradient")
+          .attr("id", "gradient")
+          .attr("x1", "0%")
+          .attr("y1", "0%")
+          .attr("x2", "100%")
+          .attr("y2", "0%")
+          .attr("spreadMethod", "pad");
+
+        mapGradient.append("svg:stop")
+          .attr("offset", "0%")
+          .attr("stop-color", "#CEE3F6")
+          .attr("stop-opacity", 1);
+
+        mapGradient.append("svg:stop")
+          .attr("offset", "100%")
+          .attr("stop-color", "#084B8A")
+          .attr("stop-opacity", 1);
+
+        colorSvg.append("svg:rect")
+          .attr("x", padding)
+          .attr("y", 10)
+          .attr("width", width - 2 * padding)
+          .attr("height", 20)
+          .style("fill", "url(#gradient)");
+
+      var colorXScale = d3.scale.log().domain([0.6828, 12852.0408]).range([padding, width - padding]);
+      
+      //attach x axis
+      var colorXAxis = d3.svg.axis()
+          .scale(colorXScale)
+          .orient("bottom")
+          .ticks(15,"d");
+      
+      colorSvg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," +30 + ")")
+          .call(colorXAxis);
+
+      var mapG = mapSvg.append("g");
+      var latestCountryValue;
+      var countryList;
+      //get the JSON to create a world map
+      function drawMap(){
+          d3.json("data/country-currency-codes.json", function(error, codes){
+          //countryList is an array
+          countryList = codes.map(function(country){
+              return {currency: country["currency_alphabetic_code"],
+                      code: country["ISO3166-1-numeric"],
+                      name: country["name"],
+                      abbr: country["ISO3166-1-Alpha-3"],
+                      bool: country["is_primary"]};
+            
+          });
+          //get the min and max exchange rate for scaling
+          var minCurrency = Number.MAX_VALUE;
+          var maxCurrency = 0;
+          //convert the keys of latestCurrency from currency to country code
+          latestCountryValue = convertLatestKeyToCode();
+          function convertLatestKeyToCode(){
+            var result = new Object();
+            var a = 0;
+            for(var i = 0; i < countryList.length; i++){
+              if(latestCurrency.hasOwnProperty(countryList[i].currency) && 
+                 countryList[i].bool == "yes"){
+
+                result[countryList[i].code] = new Object();
+                result[countryList[i].code].value = latestCurrency[countryList[i].currency];
+                result[countryList[i].code].name = countryList[i].name;
+                result[countryList[i].code].abbr = countryList[i].abbr;
+                result[countryList[i].code].currency = countryList[i].currency;
+                if(latestCurrency[countryList[i].currency] > maxCurrency)
+                  maxCurrency = latestCurrency[countryList[i].currency];
+                if(minCurrency > latestCurrency[countryList[i].currency])
+                  minCurrency = latestCurrency[countryList[i].currency];
+              }
+            }
+            return result;
+          }
+          //get the world map data
+          d3.json("data/world-50m.json", function(error, world){
+            var countries = topojson.feature(world, world.objects.countries).features;
+            //using color scale to map the currency value of different countries to visualization
+            var colorScale = d3.scale.linear()
+                .domain([Math.log(minCurrency), Math.log(maxCurrency)])
+                .range(["#CEE3F6", "#084B8A"]);
+            //Create a map
+            mapG.selectAll("path")
+                .data(countries)
+                .enter()
+                .append("path")
+                .attr("d", path)
+                .attr("id", function(d){
+                  if(latestCountryValue.hasOwnProperty(d.id)){
+                    return latestCountryValue[d.id].abbr;
+                  }
+                })
+                .style("fill", function(d){
+                  if(latestCountryValue.hasOwnProperty(d.id)){
+                    return colorScale(Math.log(latestCountryValue[d.id].value));
+                  }else 
+                    return "#fff";
+                })
+                .style("stroke", "#e6e6e6")
+                .on("click", clickMap);
+
+            //attach names of countries on the map
+            var labels = mapG.selectAll("text")
+                .data(countries)
+                .enter()
+                .append("text")
+                .attr("transform", function(d){
+                    return "translate(" + path.centroid(d) + ")";
+                })
+                .attr("id", function(d){
+                  if(latestCountryValue.hasOwnProperty(d.id)){
+                    return "label-" + latestCountryValue[d.id].abbr;
+                  }
+                })
+                .attr("dy", ".35em")
+                .style("text-anchor", "middle")
+                .style("alignment-baseline", "center")
+                .on("click", clickMap)
+                .text(function(d){
+                  if(latestCountryValue.hasOwnProperty(d.id)){
+                    return latestCountryValue[d.id].abbr;
+                  }
+                });
+          });
+        });
+      }
+
+      //set events after user clicks a point on the map
+      var centered;
+      function clickMap(d){
+        var x = 0;
+            y = 0;
+            k = 1;
+
+        if(d && centered !== d){
+          var centroid = path.centroid(d);
+          x = width / 4 - centroid[0];
+          y = height / 4 -  centroid[1];
+          k = 2;
+          centered = d;
+        }else{
+          centered = null;
+        }
+
+        mapG.selectAll("path")
+            .classed("active", centered && function(d){
+              return d === centered;
+            });
+        //attach the label of each country on the map
+        mapG.selectAll("text")
+            .text(function(d){
+                  if(latestCountryValue.hasOwnProperty(d.id)){
+                    return latestCountryValue[d.id].abbr;
+                  }
+            })
+            .classed("active", false);
+            //if a country is selected, attach country name and corresponding currency value
+            if(centered){
+              if(latestCountryValue.hasOwnProperty(d.id)){
+                    mapG.select("#label-" + latestCountryValue[d.id].abbr)
+                        .text(function(d){
+                          return latestCountryValue[d.id].name + ": " + latestCountryValue[d.id].value;
+                        })
+                        .classed("active", centered && function(d){
+                          return d === centered;
+                        });
+              }
+
+            //show exchange rate between "d" and other countries
+            latestCurrencyGraph(latestCountryValue[d.id].currency);
+            }
+            //zoom in the selected country
+            mapG.transition()
+                .duration(1000)
+                .attr("transform", "scale(" + k + ")translate(" + x + "," + y + ")")
+                .style("stroke-width", 1.5 / k + "px");
+      }
+      </script>
+
+        </div>
+        <div class="col-md-3">
+          <p>Select you favorite country as "homeland" by clicking its region on the map and view the latest exchange rate to a US dollar(04/10/2015). Click the selected country again to return the original map. You can also change the "homeland" by clicking the region of another country without returning to default map.</p>
+          <p>The color scale indicates the amount of money needed to buy a USD in that country. The deeper the color is, the more money is needed.</p>
+          <p style="font-size:25px">Click One and Scroll Down !!</p>
+        </div>
+      </div>
+      <br><br>
+      <div class="row">
+        <h1>What if I want to exchange some money in other countries?</h1>
+        <div class="col-md-9">
+          <div id="barGraph">
+            <table border="0" cellpadding="10" style="overflow-y: scroll;">
+            <tr>
+            <td><div id="table_container" class="csvTable"></div></td>
+            </tr>
+            </table>
+            <div class="legend" id="l2"></div>
+        <script>
+            //Attach a dropdown menu for to refer currency code
+            var options = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26];
+            var abbrCname = ["AUD", "EUR", "BRL", "CAD", "CLP", "CNY", "COP", "CZK", "INR", "IDR", "ILS", "JPY", "KRW", "MXN", "NZD", "PLN", "RUB", "SGD", "ZAR", "SEK", "CHF", "TWD", "THB", "TRY", "AED", "GBP", "USD"];
+            var actualCname = ["Australia", "Austria", "Brazil", "Canada", "Chile", "China", "Colombia", "Czech Republic", "India", "Indonesia", "Israel", "Japan", "Korea, Republic of", "Mexico", "New Zealand", "Poland", "Russian Federation", "Singapore", "South Africa", "Sweden", "Switzerland", "Taiwan, Province of China", "Thailand", "Turkey", "United Arab Emirates", "United Kingdom", "United States"];
+          
+            var dropDown = d3.select("#table_container").append("select")
+                        .attr("name", "country-list");
+
+            var options = dropDown.selectAll("option")
+               .data(options)
+               .enter()
+               .append("option");
+            options.text(function (d) { return abbrCname[d]; })
+                .attr("value", function (d) { return abbrCname[d]; });
+          
+            d3.select('select')
+              .on("change", function() {
+                key = this.selectedIndex;
+                d3.selectAll("#l2").text(actualCname[key]);
+            });
+            //create currency bar graph
+            
+            function latestCurrencyGraph(currencyAbbr){
+              var minData = Number.MAX_VALUE;
+              var maxData = 0;
+              //get the latest exchange rate between currently selected country and others
+              var latestData = Object.keys(currencyData[currencyAbbr]).map(function(current){
+                n = new Object();
+                n.currencyAbbr = current;
+                n.Value = +currencyData[currencyAbbr][current][currencyData[currencyAbbr][current].length - 1].Value.toFixed(6);
+                if(minData > n.Value)
+                  minData = n.Value;
+                if(maxData < n.Value)
+                  maxData = n.Value;
+                return n;
+              });
+
+              var latestCurrencyHeight = 250;
+              var latestPadding = 40;
+              //clear the svg element before adding new bar graph
+              d3.select("#barGraph").select("svg").remove();
+              var barSvg = d3.select("#barGraph").append("svg")
+                .attr("width", width)
+                .attr("height", latestCurrencyHeight);
+              //setting bar tips
+              var tip = d3.tip()
+                .attr("class", "d3-tip")
+                .offset([-10, 0])
+                .html(function(d){
+                  return "<strong>Exchange Rate:</strong> <span style='color:red'>" + d.Value + currencyAbbr + " = 1"+ d.currencyAbbr + "</span>";
+                });
+
+              barSvg.call(tip);
+              //perform ordinal xScale
+              var xScale = d3.scale.ordinal()
+                  .domain(latestData.map(function(d){
+                    return d.currencyAbbr;
+                  }))
+                  .rangeRoundBands([latestPadding, width - latestPadding], .1);
+              //perform exponent yScale
+              var yScale = d3.scale.pow().exponent(0.3)
+                  .domain([minData, maxData])
+                  .range([latestCurrencyHeight - latestPadding, latestPadding]);
+
+              var xAxis = d3.svg.axis()
+                  .scale(xScale)
+                  .orient("bottom");
+
+              var yAxis = d3.svg.axis()
+                  .scale(yScale)
+                  .orient("left");
+              //attach x axis
+              barSvg.append("g")
+                  .attr("class", "x axis")
+                  .attr("transform", "translate(0," +(latestCurrencyHeight-latestPadding) + ")")
+                  .call(xAxis);
+              //attach y axis
+              barSvg.append("g")
+                  .attr("class", "y axis")
+                  .attr("transform", "translate(" + latestPadding + ", 0)")
+                  .call(yAxis)
+                  .append("text")
+                  .attr("transform", "rotate(-90)")
+                  .attr("y", -10)
+                  .attr("dy", ".71em")
+                  .style("text-anchor", "end")
+                  .text(currencyAbbr);
+
+              //draw bars according to the exchange rate between countries
+              var bars = barSvg.selectAll(".bar")
+                  .data(latestData);
+
+              bars.enter()
+                  .append("g")
+                  .attr("class", "bar");
+
+              bars.append("rect")
+                  .attr("id", function(d){
+                    return "bar-"+ d.currencyAbbr;
+                  })
+                  .attr("x", function(d){
+                    return xScale(d.currencyAbbr);
+                  })
+                  .attr("width", xScale.rangeBand())
+                  .attr("y", function(d){
+                    return yScale(d.Value);
+                  })
+                  .attr("height", function(d){
+                    return latestCurrencyHeight - latestPadding - yScale(d.Value);
+                  })
+                  .on("mouseover", tip.show)
+                  .on("mouseout", tip.hide)
+                  .on("click", barClick);
+
+              //x axis label of bar
+              barSvg.append("text")
+                  .attr("x", width - latestPadding)
+                  .attr("y", latestCurrencyHeight - latestPadding / 3)
+                  .attr("font-size", "11px")
+                  .style("text-anchor", "middle")
+                  .style("alignment-baseline", "center")
+                  .text("Currency Code");
+              //call events that happen after click a country on the barGraph
+
+              function barClick(d){
+                lineChart(currencyAbbr, d.currencyAbbr);
+                pieDayChart(currencyAbbr, d.currencyAbbr);
+                pieSeasonChart(currencyAbbr, d.currencyAbbr);
+                dayFluctuation(currencyAbbr, d.currencyAbbr); 
+                d3.select("#Reset").on("click",function(){
+                  lineChart(currencyAbbr, d.currencyAbbr)});
+              }
+            }
+            </script>
+
+          </div>
+        </div>
+        <div class="col-md-3">
+          <p>Let's see the exchange rate between the currency of your "homeland"(China by default), which you click above, and others.</p>
+          <p>Put your mouse over the bars to view details.</p>
+          <p style="font-size:25px">Click One Again and Scroll Down !!</p>
+          <p style="font-size:13px">If you have no idea about the currency code, look up the dropdown menu.</p>
+        </div>
+      </div>
+      <br><br>
+
+      <div class="row">
+        <h1>When should I exchange money?</h1> 
+      <div class="col-md-4">
+        <h4>Days by Gain/Loss</h4>
+        <div id="DayGraph"></div>
+        <p>Gain: Probability that exchange rate is higher than previous day.
+        <br>Loss: Probability that exchange rate is lower than previous day. <br>If your mouse is over the legend, the corresponding fan section in the pie is highlighted. </p>
+      </div>
+    <script>
+    function pieDayChart(countryName1,countryName2){
+         //function used to calculate the gain/loss percent
+         var calgain = function(name1,name2){
+         var daydata = currencyData[name1][name2];
+         var gain=0;
+         var loss=0;
+         var day = new Array(2);//contain data for pie
+         for(var i=1; i<daydata.length; i++) {
+           var now =Number(daydata[i].Value);
+           var past= Number(daydata[i-1].Value);
+          
+           if  (now > past)
+                gain=gain+1;
+           else loss=loss+1;
+           }
+         var  gainper = gain/(gain+loss);
+         var  lossper = loss/(gain+loss);
+         day[0]=gainper;
+         day[1]=lossper;
+         return day;
+        }  
+
+        var dataset = calgain(countryName1,countryName2);
+
+        //Width and height
+        var wdg = 350;
+        var hdg = 300;
+        //Set up pie parameter
+        var outerRadius = 120;
+        var innerRadius = 0;
+        var arc = d3.svg.arc()
+                .innerRadius(innerRadius)
+                .outerRadius(outerRadius);
+        
+        var pie = d3.layout.pie() 
+            .sort(null);
+  
+        //initial pie chart
+        var enterClockwise = {
+            startAngle: 0,
+            endAngle: 0
+        };
+        var enterAntiClockwise = {
+        startAngle: Math.PI * 2,
+        endAngle: Math.PI * 2
+        };
+
+        var color = ["#6baed6",  "#9ecae1"];
+
+        //Create SVG element
+        d3.select("#DayGraph").select("svg").remove();
+        var svg = d3.select("#DayGraph")
+              .append("svg")
+              .attr("width", wdg)
+              .attr("height", hdg)
+              .append("g") 
+              .attr("transform", "translate(" + outerRadius + "," + 150 + ")");  
+
+        // set the start and end angles to default countries
+        // transition clockwise to the actual values later
+        var path = svg.selectAll("path")
+                      .data(pie(dataset))
+                      .enter()
+                      .append("path")
+                      .attr("fill", function(d, i) {return color[i]; })
+                      .attr("d",arc(enterClockwise))
+                      .each(function(d){
+                        this._current={
+                          data: d,
+                          startAngle: enterClockwise.startAngle,
+                          endAngle: enterClockwise.endAngle
+                      };
+                    });
+
+        var label = svg.selectAll("text")
+                       .data(pie(dataset))
+                       .enter()
+                       .append("text")
+                       .style("fill", "white")
+                       .style("font-size","14px")
+                       .attr("transform", function(d) {
+                return "translate(" + arc.centroid(d) + ")";
+               })
+                       .attr("text-anchor", "middle")
+                       .text(function(d, i) {
+                return (d3.format(",.1%")(d.value));
+              });
+
+        path.transition()
+            .duration(750)
+            .attrTween("d",arcTween)
+            .attr("fill", function(d, i) {return color[i];});
+                           
+        /*Legend*/
+        var testdata = [1,2];
+        var labels = ["Gain", "Loss"];
+        var legendT = svg.selectAll("text1")
+                       .data(testdata)
+                       .enter().append("text")
+                       .style("fill", "black") 
+                       .style("font-size","14px") 
+                       .attr("transform", function(d,i){
+                          return "translate(" + 175 + "," + (30*i-85) + ")";})
+                       .attr("text-anchor", "middle")
+                       .text(function(d,i){return labels[i];});
+        var colorCopy = color;
+        var legendR = svg.selectAll("rect")
+                       .data(testdata)
+                       .enter().append("rect")
+                       .style("fill", function (d,i) { return color[i]; }) 
+                       .attr("transform", function(d,i){
+                          return "translate(" + 135 + "," + (30*i-100) + ")";}) 
+                       .attr("width", 20)
+                       .attr("height", 20)
+                       .on("mouseover", function(d,i) {
+                          colorCopy[i]="#f03b20";
+                          legendR.style("fill",function (d,i) { return colorCopy[i]; });
+                    
+                          path.transition()
+                              .duration(150)
+                              .attrTween("d",arcTween)
+                              .attr("fill", function(d, i) {return colorCopy[i];});
+                          colorCopy =["#6baed6",  "#9ecae1"];
+                        })
+                        .on("mouseout", out);
+
+        var colortest = ["#6baed6",  "#9ecae1"];                
+        //When mouse out make the pie color back to original    
+        function out(){
+          legendR = legendR.data(testdata);
+          legendR.style("fill",function (d,i) { return colortest[i];});
+                          
+          path = path.data(pie(dataset));//rebind new dataset
+          path.transition()
+           .duration(50)
+           .attrTween("d",arcTween)
+           .attr("fill", function(d, i) {return colortest[i];});
+        }
+    
+        function arcTween(a){
+        var inter = d3.interpolate(this._current,a);
+        this._current = inter(0);
+          return function(t){
+            return arc(inter(t));
+          };
+        }
+    }
+    </script>
+    
+    <div class="col-md-4">
+      <h4>Quarter with lowest exchange rate</h4>
+    <div id="seasonGraph"></div>
+    <p>Probability that a quarter achieves lowest average exchange rate in a year.<br>If your mouse is over the legend, the corresponding fan section in the pie is highlighted.</p>
+    </div>
+    <script>
+    //pieSeasonChart
+    function pieSeasonChart(countryName1,countryName2){
+      //function used to calculate the probability for a quarter to have lowest average exchange rate among one year
+      var calseason = function(name1,name2){
+        var seasondata = currencyData[name1][name2];
+        var q1=0;
+        var q2=0;
+        var q3=0;
+        var q4=0;
+        var season = [0,0,0,0];//contain data for pie
+        //year array [years][quarters] = quarter avg at that year
+        var year = new Array(11);//0~2005,10~2015
+        for (var i=0; i<year.length; i++){
+          year[i] = new Array(4);
+          for(var j=0; j<4; j++){
+            year[i][j]=0;
+          }
+        }
+        var count = 0;
+          for(var j=0; j<year.length; j++){
+            for(var k=0; k<4;k++){
+              for(i=0; i<seasondata.length; i++){
+               if(seasondata[i].Date.getFullYear()-2005==j){
+                 if(seasondata[i].Date.getMonth()/3==k){
+                  year[j][k] += seasondata[i].Value
+                  count += 1;
+                 }
+               }
+              }
+            year[j][k]=year[j][k]/count;
+            count = 0;
+            }
+          }
+
+          //calculate the peobability for a certain quarter to have lowest exchange rate
+          var min = new Array(10);//store ten years' quarter min avg value
+          var minseason = new Array(10);// store the corresponding quarter
+          for(var j=0; j<min.length; j++){ 
+            min[j] = Math.min.apply(Math, year[j]);
+          }
+   
+          for(var i=0; i<year.length; i++){
+            minseason[i]=getIndexOfmin(year,min[i]);
+          }
+
+          for(var i=0; i<minseason.length;i++){
+            if(minseason[i]==0) q1+=1;
+            if(minseason[i]==1) q2+=1;
+            if(minseason[i]==2) q3+=1;
+            if(minseason[i]==3) q4+=1;      
+          }
+          var sumSeason = q1+q2+q3+q4;
+          season[0] = q1/sumSeason;
+          season[1] = q2/sumSeason;
+          season[2] = q3/sumSeason;
+          season[3] = q4/sumSeason;
+          
+          return season;
+        }
+
+      function getIndexOfmin(year,min){
+        for (var i=0; i<year.length; i++){
+          var index = year[i].indexOf(min);
+          if(index> -1){
+            return index;
+          }
+        }
+      }
+
+      var dataset = calseason(countryName1,countryName2);
+   
+      //Width and height
+      var wdg = 350;
+      var hdg = 300;
+      //Set up pie chart parameter
+      var outerRadius = 120;
+      var innerRadius = 50;
+      var arc = d3.svg.arc()
+              .innerRadius(innerRadius)
+              .outerRadius(outerRadius);
+      
+      var pie = d3.layout.pie() 
+          .sort(null);
+  
+    //Initialize
+      var enterClockwise = {
+          startAngle: 0,
+          endAngle: 0
+      };
+      var enterAntiClockwise = {
+      startAngle: Math.PI * 2,
+      endAngle: Math.PI * 2
+      };
+
+      var color = ["#08519c","#3182bd","#6baed6","#9ecae1"];
+
+      var labels = ["Q1", "Q2", "Q3", "Q4"];
+      
+      //Create SVG element
+      
+      d3.select("#seasonGraph").select("svg").remove();
+      var svg = d3.select("#seasonGraph")
+            .append("svg")
+            .attr("width", wdg)
+            .attr("height", hdg)
+            .append("g") 
+            .attr("transform", "translate(" + outerRadius + "," + 150 + ")");  
+      // set the start and end angles to default countries
+      // transition clockwise to the actual values later
+      var path = svg.selectAll("path")
+                    .data(pie(dataset))
+                    .enter()
+                    .append("path")
+                    .attr("fill", function(d, i) {return color[i]; })
+                    .attr("d",arc(enterClockwise))
+                    .each(function(d){
+                      this._current={
+                        data: d,
+                        startAngle: enterClockwise.startAngle,
+                        endAngle: enterClockwise.endAngle
+                    };
+                  });
+
+
+      var label = svg.selectAll("text")
+                     .data(pie(dataset))
+                     .enter()
+                     .append("text")
+                     .style("fill", "white")
+                     .style("font-size","14px")
+                     .attr("transform", function(d) {
+              return "translate(" + arc.centroid(d) + ")";
+             })
+                     .attr("text-anchor", "middle")
+                     .text(function(d, i) {if(d.value!=0)
+            return (d3.format(",.1%")(d.value));
+            });
+
+      path.transition()
+         .duration(750)
+         .attrTween("d",arcTween)
+         .attr("fill", function(d, i) {return color[i];});
+
+      //Legend 
+      var testdata = [1,2,3,4];
+      var legendT = svg.selectAll("text1")
+                     .data(testdata)
+                     .enter().append("text")
+                     .style("fill", "black") 
+                     .style("font-size","14px") 
+                     .attr("transform", function(d,i){
+                        return "translate(" + 175 + "," + (30*i-85) + ")";})  
+                     .attr("text-anchor", "middle")
+                     .text(function(d,i){return labels[i];});
+
+       var colorCopy = color;//Store mouse event color
+
+       var legendR = svg.selectAll("rect")
+                     .data(testdata)
+                     .enter().append("rect")
+                     .style("fill", function (d,i) { return color[i]; }) 
+                     .attr("transform", function(d,i)
+                   {return "translate(" + 135 + "," + (30*i-100) + ")";})  
+                     .attr("width", 20)
+                     .attr("height", 20)
+
+                     .on("mouseover", function(d,i) {
+                
+                    colorCopy[i]="#f03b20";
+                    
+                    legendR.style("fill",function (d,i) { return colorCopy[i]; });
+                    
+                    path.transition()
+                   .duration(150)
+                   .attrTween("d",arcTween)
+                   .attr("fill", function(d, i) {return colorCopy[i];});
+
+                   colorCopy = ["#08519c","#3182bd","#6baed6","#9ecae1"];
+                    })
+
+                   .on("mouseout", out);
+
+        var colortest = ["#08519c","#3182bd","#6baed6","#9ecae1"];
+      
+      //When mouse out make the pie color back to original 
+       function out(){
+       legendR = legendR.data(testdata);
+       legendR.style("fill",function (d,i) { return colortest[i];});
+                    
+       path = path.data(pie(dataset));//rebind new dataset
+       path.transition()
+       .duration(50)
+       .attrTween("d",arcTween)
+       .attr("fill", function(d, i) {return colortest[i];});
+  }
+
+  
+       function arcTween(a){
+       var inter = d3.interpolate(this._current,a);
+       this._current = inter(0);
+       return function(t){
+       return arc(inter(t));
+    };
+  }
+}
+
+</script>
+<div class="col-md-4">
+    <h4>Days by Fluctuation(%)</h4>
+        <div id="hisGraph">
+        <div style="color: #3182bd">
+        <div class="span2" id="sum">Range Frequency: 0 </div>
+        </div>
+    </div>
+    <p>Histogram of exchange rate fluctuation. <br>To see the probability for range of fluctuation values that you are interested in, </p><p style="font-size: 20px">Brush it!!</p>
+</div>
+<script>
+    //dayFluctuationChart
+    function dayFluctuation(countryName1,countryName2){
+
+       //function used to get the day fluctuation
+       var calfluctuation = function(name1,name2){
+        var fdata = currencyData[name1][name2];
+        var day = new Array();//contain data for bar
+        for(var i=1; i<fdata.length; i++) {
+         var now =Number(fdata[i].Value);
+         var past= Number(fdata[i-1].Value);   
+          day[i]= (now-past)/past;
+         }
+        return day;
+       }   
+      var dataset = calfluctuation(countryName1,countryName2);
+  
+      //Width and height
+      var wdg = 400;
+      var hdg = 300;
+      var padding = 35;
+      
+      //Create SVG element
+      
+      d3.select("#hisGraph").select("svg").remove();
+      var svg = d3.select("#hisGraph")
+            .append("svg")
+            .attr("width", wdg)
+            .attr("height", hdg) 
+
+      var numBin = Math.round(Math.sqrt(dataset.length));
+      var histogram = d3.layout.histogram().bins(numBin);
+      var bins = histogram(dataset);
+      var binWidth = bins[0].dx;
+
+      //x axis and y axis
+      var xScale = d3.scale.linear()
+          .domain([d3.min(dataset), d3.max(dataset)])
+          .range([padding, wdg - padding]);
+
+      var yScale = d3.scale.linear()
+      .domain([0, d3.max(bins, function (bin) { return bin.y; })])
+      .range([hdg - padding, padding]);
+      //tooltips
+      var tip = d3.tip()
+             .attr("class", "d3-tip")
+             .offset([-10, 0])
+             .html(function(d){
+             return "<strong>Frequency:</strong> <span style='color:red'>" + d3.format(",.1%")(d.length/dataset.length) + "</span>";
+                });
+      svg.call(tip);
+
+      //Brush
+      var wBrush = (xScale(binWidth) - xScale(0) - 1);
+      var brush = d3.svg.brush()
+                      .x(xScale)
+                      .on("brushstart", brushstart)
+                      .on("brush", brushmove)
+                      .on("brushend", brushend);
+ 
+      svg.selectAll(".brush").remove();
+      svg.selectAll(".selected").classed(".selected", false);
+      svg.append("g")
+         .attr("class", "brush")
+         .call(brush)
+         .selectAll("rect")
+         .attr("height", hdg);
+
+      var bars = svg.selectAll(".bar").data(bins);
+      bars.enter().append("g").attr("class", "bar");
+
+      // Display bars
+      // Use a transform to position the bar
+      bars.attr("transform", function (bin) {
+        return "translate(" + xScale(bin.x) + "," + yScale(bin.y) + ")";
+      });
+      // In each bar's group, add a rect
+      bars.append("rect")
+      .attr("x", 1)
+      .attr("width", xScale(binWidth) - xScale(0) - 1)
+      .attr("height", function(bin) {
+        return hdg - padding - yScale(bin.y);
+      })
+      .on("mouseover", tip.show)
+      .on("mouseout", tip.hide);
+
+      var xAxis = d3.svg.axis().scale(xScale).tickFormat(d3.format(",.1%"));
+      svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(0, " + (hdg-padding) + ")")
+        .call(xAxis);
+
+      var yAxis = d3.svg.axis().scale(yScale).orient("left");
+      svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(" + padding + ")")
+        .call(yAxis);
+
+        svg.append("text")
+            //.attr("x", 30)//-320,70
+            //.attr("y", 170)
+            .attr("font-size", "11px")
+            .attr("transform","translate(8,53) rotate(-90)")
+            //.attr("transform", "rotate(-90)")
+            .style("text-anchor", "middle")
+            .style("alignment-baseline", "center")
+            .text("Frequency");
+
+       svg.append("text")
+            .attr("x", 350)
+            .attr("y", 295)
+            .attr("font-size", "11px")
+            .style("text-anchor", "middle")
+            .style("alignment-baseline", "center")
+            .text("Percentage");
+
+      function brushstart() {
+          svg.classed("selecting", true);
+      }
+
+      function brushmove() {
+       var extent = d3.event.target.extent();
+        bars.classed("selected", function(d) { return extent[0] <= xScale(d.x) && xScale(d.x) + wBrush <= extent[1]; });
+        calperc();
+      }
+
+      function brushend() {
+        svg.classed("selecting", !d3.event.target.empty());
+      }    
+
+
+      function calperc() {
+        var sumDiv = d3.select("#sum"),
+            extent = brush.extent(),
+            sum = 0;
+        
+        bins.forEach(function(d) {
+          if (extent[0] <= d.x && d.x<= extent[1])
+            sum += d.y;
+        });
+
+        sumDiv.text("Range Frequency:  " + d3.format(",.1%")(sum/dataset.length));
+      }
+    }
+    </script>
+  </div>
+
+      <div class="row"> 
+        <h1>How does the exchange rate float over last ten years?</h1>
+        <div class="col-md-9">
+        <div id="Reset">
+        <button id="Reset">Reset</button>
+        </div>
+        <div id="lineGraph"></div>
+        <script>
+ /*draw the line chart of the currency of different countries by choosing one of the country in the map and one in the bar chart.
+      */
+      
+      function lineChart(countryName1,countryName2){
+        var data = currencyData[countryName1][countryName2];
+        var margin = {top: 30, right: 20, bottom: 30, left: 50},
+            lineWidth = width - margin.left - margin.right,
+            height = 270 - margin.top - margin.bottom;
+        
+        var minDate = currencyData.CAD.AUD[0].Date;
+        var maxDate = currencyData.CAD.AUD[2505].Date;
+        var x = d3.time.scale().domain([minDate, maxDate]).range([0, lineWidth]);
+        var y = d3.scale.linear().range([height, 0]);
+
+        
+        y.domain([0.9*d3.min(data, function(d) { return d.Value;}), 1.1*d3.max(data, function(d) { return d.Value;})])
+        //define the axes
+        var xAxis = d3.svg.axis().scale(x).orient("bottom").ticks(10);
+        var yAxis = d3.svg.axis().scale(y).orient("left").ticks(10);
+        
+        var zoom = d3.behavior.zoom().x(x).y(y).on("zoom", zoomed);
+        
+        var bisectDate = d3.bisector(function(d) { return d.Date; }).left;
+         //define the zoom function of x and y axis 
+        zoomed();
+        function zoomed(){
+          d3.select("#lineGraph").select("svg").remove();
+          var svg = d3.select("#lineGraph")
+              .append("svg").call(zoom)
+              .attr("width", width)
+              .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+              .attr("transform", 
+                "translate(" + margin.left + "," + margin.top + ")");
+
+          // Add the X Axis
+          svg.append("g")
+              .attr("class", "x axis")
+              .attr("transform", "translate(0," + height + ")")
+              .call(xAxis);
+
+          // Add the Y Axis
+          svg.append("g")
+              .attr("class", "y axis")
+              .call(yAxis);
+          // remove the part out of svg graph
+          svg.append("clipPath")
+          .attr("id", "clip")
+          .append("rect")
+          .attr("width", width)
+          .attr("height", height);
+
+          var line = d3.svg.line()
+                      .interpolate("linear")
+                      .x(function(d) {return x(d.Date);})
+                      .y(function(d) {return y(d.Value);});
+          svg.append("path")
+              .attr("class", "line")
+              .attr("d", line(data))
+              .attr("clip-path", "url(#clip)");
+
+          var area = d3.svg.area()
+              .x(function(d){
+                return x(d.Date);
+              })
+              .y0(height)
+              .y1(function(d){
+                return y(d.Value);
+              });
+          svg.append("text")
+            .attr("x", width - margin.right - margin.left)
+            .attr("y", height + margin.top-5)
+            .attr("font-size", "11px")
+            .style("text-anchor", "middle")
+            .style("alignment-baseline", "center")
+            .text("Time");
+
+          svg.append("text")
+           // .attr("x", margin.left+15)
+            //.attr("y", margin.top)
+            .attr("font-size", "11px")
+            .attr("transform", "translate(-25, 20)rotate(-90)")
+            .style("text-anchor", "middle")
+            .style("alignment-baseline", "center")
+            .text("Exchange rate");
+
+          svg.append("path")
+              .datum(data)
+              .attr("class", "area")
+              .attr("d", area)
+              .attr("clip-path", "url(#clip)");
+          // add circle, line and text, which show the date and exchange rate of mousemove point;
+          var focus = svg.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+
+          focus.append("circle")
+              .attr("r", 4.5);
+           
+          focus.append("line")
+          .attr("x1", 0)
+          .attr("x2", 0);
+
+          focus.append("text")
+              .attr("x", 9)
+              .attr("dy", ".35em");
+
+          svg.append("rect")
+              .attr("class", "overlay")
+              .attr("width", width)
+              .attr("height", height)
+              .on("mouseover", function() { focus.style("display", null); })
+              .on("mouseout", function() { focus.style("display", "none"); })
+              .on("mousemove", mousemove);
+
+          function mousemove() {
+            var x0 = x.invert(d3.mouse(this)[0]),
+                i = bisectDate(data, x0, 1), 
+                d0 = data[i - 1],
+                d1 = data[i],
+                d = x0 - d0.Date > d1.Date - x0 ? d1 : d0;
+
+            focus.attr("transform", "translate(" + x(d.Date) + "," + y(d.Value) + ")");
+            focus.select("line").attr("y1",height-y(d.Value)).attr("y2", 0);
+            var date = d.Date.getDate().toString()+"d/"+d.Date.getMonth().toString()+"m/"+d.Date.getFullYear().toString()+"y ";
+            focus.select("text").text(date+d.Value.toString());
+          }
+    }
+  }
+         
+      
+        </script>
+
+        </div>
+        <div class="col-md-3">
+          <p>Let's look at the exchange rate float line between the two countries you selected above(CNY to USD by default).</p>
+          <p style="font-size: 25px">Zoom In and View details!!</p>
+          <p>Remember to put your mouse on the point or area you would like to explore.</p>
+          <p style="font-size: 20px">Press Reset</p><p> to get original line.</p>
+          <p style="font-size: 10px">The data of AED currency starts from 09/03/2007.</p>
+        </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,1333 @@
+<html>
+<head>
+<script src="d3.v3.min.js" charset="utf-8"></script>
+<script src="topojson.v1.min.js"></script>
+<script src="jquery-1.11.2.min.js"></script>
+<link rel="stylesheet" href="bootstrap.min.css">
+<link rel="stylesheet" href="bootstrap-theme.min.css">
+<script src="bootstrap.min.js"></script>
+<script src="d3.tip.v0.6.3.js"></script>	
+<script src="scroll.js"></script>
+<script src="jquery.smooth-scroll.min.js"></script>
+
+	<style>
+	p{
+		color:grey;
+		font-size: 17px;
+		font-family: times;
+	}
+	.dividingLine{
+	height:2px;
+	width:70%;
+	background-color:black;
+	margin: 0 auto;
+	margin-top:30px;
+	margin-bottom:30px;
+	}
+	/*svg { border: solid black 1px; }*/
+	#hour{
+		width : 180px;
+		left : 70px;
+		top : 20px;
+		position:absolute;
+	}
+
+	.timeline{
+	  padding-top:20px;
+	  padding-right:40px;
+	  padding-bottom:20px;
+	  float:left;
+	  width:33%;
+	}
+	
+	/**zoom in selected x label*/
+	.dayLabel {
+	font-size: 15;
+	padding: 0; border: none; background: none; outline: none;
+	fill: #4D4D4D;
+	text-anchor: middle; alignment-baseline: middle;
+	cursor: pointer;
+	}
+	.dayLabel.active{
+		fill: #1E1E1E;
+		font-size: 30;
+	}
+
+	/**style for line chart*/
+	.axis path,
+	.axis line{
+		fill: none;
+		stroke: #4D4D4D;
+		shape-rendering: crispEdges;
+	}
+	.axis text{
+		font-size: 10px;
+        fill: #4D4D4D;
+     }
+	.line{
+		fill: none;
+		stroke: steelblue;
+		stroke-width: 2px;
+	}
+	/**style for heatmap*/
+	.bar rect { fill: steelblue; }
+	.tooltip{ line-height: 1;
+        font-weight: bold;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px; }
+
+	/**style for linear model*/
+	.brush .extent {
+	  stroke: #fff;
+	  fill-opacity: .05;
+	  shape-rendering: crispEdges;
+	}
+	</style>
+	</head>
+	<body>
+	<nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Bike Sharing Visualization</a>
+        </div>
+        <div id="navbar">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Wenhan Xue (wx62)</a></li>
+            <li><a href="#">Jiabin Dong (jd836)</a></li>
+            <li><a href="#">Jing Zhang (jz322)</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron">
+      <div class="container">
+          <div class="row">
+            <div class="col-md-12">
+              <h1>Bike Sharing Program</h1>
+              <p style="color:black">
+As parking always costs a lot, especially in metropolis, so people prefer riding bikes nowadays. We collected the bike rental data in Washington D.C from Kaggle and created this web page to illustrate different factors that would affect the bike rentals. </p>
+          </div>
+       </div>
+      </div>
+    </div>
+    <div class="container">
+    	<div class="row">
+    <div class="dividingLine"></div>
+	<h1 style="text-align: center">Weekly Animation(By Average)</h1>
+	<p style="text-align: center;font-style:italic;font-size:1.2em;">Drag the slider to view bike rentals by hour!
+	<br>Change the weekdays of interest by clicking the text at the bottom!</p>
+	<div class="dividingLine"></div>
+	<div id="in" style="text-align:center"></div>
+	<p style="text-align:center">**Specify a range of time that you are interested in(1/2011~12/2012). </p>
+	<br>
+	</div>
+
+	<script>
+	var selectedRange = new Array();
+	var inputs_valid = function() { 
+        if (document.getElementById("start").value.length == 0 || document.getElementById("end").value.length == 0){
+            d3.select("#submit").attr("disabled", true);
+        } else {
+            d3.select("#submit").attr("disabled", null);
+        }
+    };
+
+	//valid the input text
+	function textValidation(v){
+		var result = false;
+		var temp = v.split("/");
+		if(temp.length !== 2)
+			return result;
+		var month = Number(temp[0]);
+		var year = Number(temp[1]);
+		if(month <= 12 && month >= 0 && (year === 2011) || (year === 2012))
+			result = true;
+		return result;
+	}
+
+	</script>
+	<div class = "row">
+	<div class="col-md-5 col-md-offset-1">
+
+    <input type="range" min="0" max="23" id="hour" />
+	<div id = "WA" style="text-align:center"></div>
+ 	</div>
+	<!--<br><br><br>-->
+	<div class="col-md-5">
+	<div id = "WL" style="text-align:center"></div>
+	</div>
+    </div>
+	<script>
+	var usageData;
+	var rawData;
+    var selectedDay = "MON";
+	//Converts a data string to a JavaScript Date object
+	function parseDate(d){
+		var temps = d.split(" ");
+		var days = temps[0].split("/");
+		var hours = temps[1].split(":");
+
+		return new Date(days[2], days[0] - 1, days[1], hours[0]);
+	}
+	//Get the bike usage data from file
+	d3.csv("data/bike_usage.csv", function(errors, rows){
+		usageData = rows;
+		rawData = rows;
+		usageData.forEach(function(r){
+			r["datetime"] = parseDate(r["datetime"]);
+			r["atemp"] = Number(r["atemp"]);
+			r["season"] = Number(r["season"]);
+			r["holiday"] = Number(r["holiday"]);
+			r["workingday"] = Number(r["workingday"]);
+			r["weather"] = Number(r["weather"]);
+			r["temp"] = Number(r["temp"]);
+			r["humidity"] = Number(r["humidity"]);
+			r["windspeed"] = Number(r["windspeed"]);
+			r["count"] = Number(r["count"]);
+		});
+		//console.log(rows);
+		//TODO select parameters for weekAnimation
+		var week = getWeek(usageData);//average????
+		//console.log(week);
+		weekAnimation(week);
+        weekLine(week);
+		
+        //Generate the user interactive input
+		var addr = d3.select("#in");
+		addr.append("text")
+			.text("Start Month:     ");
+		addr.append("input")
+			.attr("type", "text")
+			.attr("class", "inputs")
+			.attr("id", "start")
+			.attr("placeholder", "Start Month(MM/YYYY)")
+			.style("margin", "auto")
+			.on("input", function(){inputs_valid();})
+		addr.append("text")
+			.text("End Month:    ");
+		addr.append("input")
+			.attr("type", "text")
+			.attr("class", "inputs")
+			.attr("id", "end")
+			.attr("placeholder", "End Month(MM/YYYY)")
+			.style("margin", "auto")
+			.on("input", function(){ inputs_valid();});
+		addr.append("text")
+			.text("       ");
+		addr.append("button")
+			.text("Submit")
+			.attr("id", "submit")
+			.attr("disabled", true)
+			.on("click", function(){
+				var s = document.getElementById("start").value;
+				var e = document.getElementById("end").value;
+
+				//parse the input month
+				if(textValidation(s) && textValidation(e)){
+					//console.log(s);
+					d3.select("#WA").select("svg").remove();
+					d3.select("#WL").select("svg").remove();
+					var startMonth = Number(s.split("/")[0]);
+					var startYear = Number(s.split("/")[1]);
+					var endMonth = Number(e.split("/")[0]);
+					var endYear = Number(e.split("/")[1]);
+					var startTime = new Date(startYear, startMonth - 1);
+					var endTime = new Date(endYear, endMonth - 1);
+					for(var i = 0; i < usageData.length; i++){
+						var temp = usageData[i].datetime;
+						if(temp <= endTime && temp >= startTime)
+							selectedRange.push(usageData[i]);
+					}
+					var newWeek = getWeek(selectedRange);//average????
+					//console.log(newWeek);
+					weekAnimation(newWeek);
+			        weekLine(newWeek);
+				}
+			});	
+
+			//Call functions
+			draw_graph();
+			menuSelect();
+			model_graph("temp", 0);
+			//heatMap();
+			//AverageHeatMap();
+	});
+
+	//Get the weekly data from the parameter given
+	function getWeek(data){
+		var results = {}, sums = {}, counts = {}, day, hour;
+		for(var i = 0; i < data.length; i++){
+			day = data[i].datetime.getDay();
+			hour = data[i].datetime.getHours();
+			if(!(day in sums)){
+				sums[day] = new Object();
+				counts[day] = new Object();
+			}
+			if(!(hour in sums[day])){
+				sums[day][hour] = 0;
+				counts[day][hour] = 0;
+			}
+			sums[day][hour] += data[i].count;
+			counts[day][hour]++;
+		}
+		//console.log(sums);
+		//console.log(sums);
+		//console.log(counts);
+		for(day in sums){
+			results[day] = new Array();
+			for(hour in sums[day]){
+				results[day].push({
+					time: Number(hour),
+					value: sums[day][hour] / counts[day][hour]
+				});
+			}
+		}
+		return results;
+	}
+
+	//Draw the animation graph by week
+	function weekAnimation(w){
+		var width = d3.select("#WA").style("width");
+     	 width = +width.substring(0, width.length - 2);
+		var height = 450;
+		var padding = 30;
+		var days = ["SUN", "MON", "TUE", "WED", "THR", "FRI", "SAT"];
+		var svg = d3.select("#WA").append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+		var graph = svg.append("g");
+		var bubbleGraph = svg.append("g");
+
+		var xScale = d3.scale.ordinal()
+			.domain(days).rangeBands([padding, width], 0.3);
+
+		var xAxis = graph.append("line")
+			.attr("x1", padding)
+			.attr("y1", height - padding)
+			.attr("x2", width - padding)
+			.attr("y2", height - padding)
+			.attr("stroke", "black")
+			.attr("class", "axis");
+
+		var xAxisLabels = graph.selectAll("text.dayLabel")
+			.data(days)
+			.enter()
+			.append("text")
+			.classed("dayLabel", true)
+			.attr("x", function(d){ return xScale(d); })
+			.attr("y", height - 1/2 * padding)
+			.classed("active", function(d){ return d == selectedDay })
+			.text(function(d){ return d; });
+			
+		d3.selectAll("text.dayLabel").on("click", function(){
+				var thisDay = this.innerHTML;
+				if(thisDay != selectedDay){
+					bubbleGraph.remove();
+				bubbleGraph = svg.append("g");
+					d3.selectAll("text.dayLabel.active")
+						.classed("active", false);
+					d3.select(this)
+						.classed("active", true);
+
+					selectedDay = thisDay;
+					updateAnimation(thisDay);
+					weekLine(w);
+				}
+			});
+
+		//Update the bubble animation corresponding to selected year
+		function updateAnimation(day){
+			var bubbles;
+
+			d3.select("#hour").on("input", function(){
+				bubbleGraph.remove();
+				bubbleGraph = svg.append("g");
+				updateBubble(+this.value);
+			})
+			//Initialize the starting of bubble
+			var init = document.getElementById("hour").value;
+			updateBubble(init);
+			//update bubbles corresponding hour selected
+
+			function updateBubble(h){
+				bubbles = {
+					children:[]
+				};
+				var points = w[days.indexOf(day)][h];
+
+				//console.log(points.value);
+				//construct a set bubbles
+				for(var i = 0; i < Math.ceil(points.value / 10); i++){
+					bubbles.children.push({value:10});
+				}
+
+				//pack layout
+				var pack = d3.layout.pack()
+					.sort(null)
+					.size([width - 2 * padding, height - 2 * padding]);
+
+				var node = bubbleGraph.datum(bubbles).selectAll("bike")
+					.data(pack.nodes);;
+
+				node.enter()
+					.append("svg:image")
+					.attr("class", "node")
+					.attr("xlink:href", "data/bike-blue.png")
+					.attr("width", 50)
+					.attr("height", 50)
+					.attr("transform", function(d){
+						return "translate(" + d.x + "," + d.y + ")";})
+					.style("opacity", function(d){
+						return d.children == null ? 0.7 : 0
+					});
+
+				bubbleGraph.append("text")
+				.attr("text-anchor", "end")
+				.attr("x", width - 1.5 * padding)
+				.attr("y", height - 1.5 * padding)
+				.style("font-size", 35)
+				.style("opacity", 0.5)
+				.style("font-style", "italic")
+				.text("Count:" + d3.format(".0f")(points.value));
+
+				bubbleGraph.append("text")
+				.attr("text-anchor", "end")
+				.attr("x", width - 3 * padding)
+				.attr("y", 2 * padding)
+				.style("font-size", 50)
+				.style("opacity", 0.5)
+				.text(h + ":00");
+			}
+		}
+
+		updateAnimation(selectedDay);
+	}
+
+	//Plot the line graph to show the weekly count
+	function weekLine(w){
+		//console.log(w);
+		var width = d3.select("#WL").style("width");
+     	 width = +width.substring(0, width.length - 2);
+		var height = 450;
+		var padding = 50;
+
+		d3.select("#WL").select("svg").remove();
+		var svg = d3.select("#WL").append("svg")
+			.attr("width", width + padding)
+			.attr("height", height);
+		//svg.attr("transform", "translate(0, 50)");
+
+		var minCount = Number.MAX_VALUE;
+		var maxCount = 0;
+
+		//Collect the max and min count for scaling
+		for(var i = 0; i < 7; i++){
+			for(var j = 0; j < w[i].length; j++){
+				if(w[i][j].value < minCount)
+					minCount = w[i][j].value;
+				if(w[i][j].value > maxCount)
+					maxCount = w[i][j].value;
+			}
+		}
+		
+		var xScale = d3.scale.linear().domain([0, 23]).range([padding, width]);
+		
+		var yScale = d3.scale.linear().domain([0, maxCount]).range([height - padding, padding]);
+
+		var xAxis = d3.svg.axis()
+			.scale(xScale)
+			.orient("bottom")
+			.tickFormat(function(d){return (d + ":00"); });
+		var yAxis = d3.svg.axis()
+			.scale(yScale)
+			.orient("left");
+
+		var line = d3.svg.line()
+			.x(function(d) {
+				return xScale(d.time);
+			})
+			.y(function(d){
+				return yScale(d.value);
+			});
+
+		svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + (height-padding) + ")")
+			.call(xAxis)
+			.append("text")
+			.attr("x", width)
+			.attr("transform", "translate(0, 10)" )
+			.text("Hour");
+
+		svg.append("g")
+			.attr("class", "y axis")
+			.attr("transform", "translate(" + padding + ", 0)")
+			.call(yAxis)
+			.append("text")
+			.attr("transform", "rotate(-90), translate(-30, 0)")
+			.attr("y", 10)
+			.attr("dy", ".71em")
+			.style("text-anchor", "end")
+			.text("Bike Rentals");
+		var days = ["SUN", "MON", "TUE", "WED", "THR", "FRI", "SAT"];
+		for(var i = 0; i < 7; i++){
+			//console.log(w[i]);
+			svg.append("path")
+				.datum(w[i])
+				.attr("class", "line")
+				.attr("d", line)
+				.style("opacity", function(){ return days[i] == selectedDay ? 1 : 0.1; });
+
+			var y = yScale(w[i][w[i].length-1].value);
+			svg.append("text")
+				.attr("x", width)
+				.attr("y", y)
+				.style("text-anchor", "left")
+				.style("font-size", 10)
+				.text(days[i])
+				.style("opacity", function(){ return days[i] == selectedDay ? 1 : 0.1; });
+		}
+		
+	}
+	</script>
+
+	<br><br><br>
+	<div class="row">
+	<div class="dividingLine"></div>
+	<h1 style="text-align: center">Bike Rentals Trends in 2011~2012</h1>
+	<p  style="text-align: center; font-style:italic;font-size:1.2em;">Click the little circle to view count number!</p>
+	<div class="dividingLine"></div>
+	<div id="time_temp_count_plot" style="text-align:center"></div>
+    <div id="plotp2"></div>
+	<script>        
+    //Compute the average count for each temperature value
+    function average(arr){
+      var sums = {}, counts = {}, results = [], temp;
+      for(var i = 0; i < arr.length; i++){
+        temp = arr[i].x;
+        if(!(temp in sums)){
+          sums[temp] = 0;
+          counts[temp] = 0;
+        }
+        sums[temp] += arr[i].y;
+        counts[temp]++;
+      }
+      for(temp in sums){
+        
+        results.push({
+          x: Number(temp),
+          y: sums[temp] / counts[temp],
+          z: 1
+        });
+      }
+
+      return results;
+    }
+
+    function draw_graph() {
+        var points = [];
+    
+        var tip = d3.tip()
+                .attr("class", "tooltip")
+                .offset([-10, 0])
+               .html(function(d){
+                  return "<strong>Count:</strong> <span style='color:red'>" + d.y + "</span>";
+               });
+                
+        points = usageData.map(function (bike) {
+                return { 
+                  x: bike.datetime,
+                  y: Number(bike.count), 
+                  z: Number(bike.temp) 
+                };
+              });
+
+        var width = d3.select("#time_temp_count_plot").style("width");
+     	width = +width.substring(0, width.length - 2);
+     	width -= 300;
+        var height = 500;
+        var padding = 50;
+
+        var time_svg = d3.select("#time_temp_count_plot").append("svg")
+        .attr("height", height)
+        .attr("width", width);
+
+        var xDomain = d3.extent(points, function (d) {return d.x; });
+        var yDomain = d3.extent(points, function (d) {return d.y; });
+        
+        var xScale = d3.scale.linear().domain(xDomain).range([padding, width - padding]);
+        var yScale = d3.scale.linear().domain(yDomain).range([height - padding, padding]);
+
+        var months = ["1/11","2/11","3/11","4/11","5/11","6/11","7/11","8/11","9/11","10/11","11/11","12/11","1/12","2/12","3/12","4/12","12","6/12","7/12","8/12","9/12","10/12","11/12","12/12"];
+        var zScale = d3.scale.ordinal()
+              .domain(months) // values of cities
+              .rangePoints([padding, width - padding]);
+
+        //Define X axis
+        var xAxis = d3.svg.axis()
+                      .scale(zScale)
+                      .orient("bottom")
+                      .ticks(24);
+
+        //Define Y axis
+        var yAxis = d3.svg.axis()
+                      .scale(yScale)
+                      .orient("left")
+                      .ticks(10);
+
+        var colorScale = d3.scale.linear()
+              .domain(d3.extent(points, function(d){
+                return d.z;
+              }))
+              .range(["yellow","red"]);///Color!!!!!!
+
+        var circles = time_svg.selectAll("circle").data(points).enter()
+            .append("circle")
+            .attr("class","tipcircle")
+            .attr("cx", function (d) {  return xScale(d.x); })
+            .attr("cy", function (d) { return yScale(d.y); })
+            .attr("r", 5)
+            .style("opacity", "0.1")
+            .style("fill",function(d,i){
+                    return colorScale(d.z);
+                })
+            .on("click", tip.show)///MouseOver!!!
+            .on("mouseout", tip.hide)
+            ;
+
+            time_svg.call(tip);
+
+            //Create X axis
+            time_svg.append("g")
+              .attr("class", "axis")
+              .attr("transform", "translate(0," + (height - padding) + ")")
+              .style("font-size", 8)
+              .call(xAxis);
+            
+            //Create Y axis
+            time_svg.append("g")
+              .attr("class", "axis")
+              .attr("transform", "translate(" + padding + ",0)")
+              .style("font-size", 8)
+              .call(yAxis);
+
+            // add titles  to the axes
+            time_svg.append("text")
+                  .attr("text-anchor", "middle") 
+                  .style("font-size", "12px")
+                  .attr("transform", "translate(" + (padding / 2) + "," + (height / 15) + ")rotate(-90)") 
+                  .text("Count");
+
+            var x_axis_label = "MM/YY";
+
+            time_svg.append("text")
+                  .attr("text-anchor", "middle") 
+                  .style("font-size", "12px")
+                  .attr("transform", "translate(" + (width * 0.95 ) + "," + (height - (padding / 4 )) + ")") 
+                  .text(x_axis_label);
+
+            addLegend(colorScale, time_svg);
+
+    }
+
+       
+	function addLegend(color, time_svg) {
+  
+    var pcts = [];
+    
+    for (var i = 1; i <= 8; i++) {
+        pcts.push( 50 * i / 10 );
+    }
+  
+    var map_legend = time_svg.selectAll("#time_temp_count_plot")
+            .data(pcts).enter()
+            .append("g")
+            .attr({
+                "class": ".legend",
+                "transform": function(d, i) {
+                    return "translate(0," + (i + 1) * 20 + ")";
+                }
+            });
+  
+  // Add color scale
+    map_legend.append("rect")
+            .attr("x", 100)
+            .attr("width", 20)
+            .attr("height", 20)
+            //.style("opacity", 0.1)
+            .style("fill", function(d) {
+                return color(d);
+            });
+
+  // Add 
+    map_legend.append("text")
+            .attr("class", ".legend")
+            .style("font-size", "10px")
+            .attr("x", 160)
+            .attr("y", 12)
+            .attr("dy", ".35em")
+            .style("text-anchor", "end")
+            .text(function(d) {
+                return d + " C";
+            });
+      
+	}	 
+	</script>
+	</div>
+
+	<div class="row">
+	<div class="dividingLine"></div>
+	<h1 style="text-align: center">What Could Impact Bike Rentals?</h1>
+	<p style="text-align: center; font-style:italic;font-size:1.2em;">Three factors are discussed here, temperature, humidity, windspeed. <br>To make the linear model better fit, average number of count is displayed vs the three factors. <br>Select the factor and visualization type you like from the drop down menu!</p>
+	<div class="dividingLine"></div>
+
+	<div id="dropdown_menu" style="text-align: center" class="dropdown"> See Model:
+	  <select id = "selected" style="text-align: center">
+	      <option value="1">Show Temp vs Count</option>
+	      <option value="2">Show Temp vs Avg Count</option>
+	      <option value="3">Show Humidity vs Count</option>
+	      <option value="4">Show Humidity vs Avg Count</option>
+	      <option value="5">Show WindSpeed vs Count</option>
+	      <option value="6">Show WindSpeed vs Avg Count</option>
+	  </select>
+    </div>
+    <div id="tplot" style="text-align:center"></div>
+	</div>
+	<script>
+	//var inputs;
+	function menuSelect(){
+		d3.select('#dropdown_menu')
+              .on("change", function() {
+              	d3.select("#tplot").select("svg").remove();
+                 var key = document.getElementById("selected").value;
+                 if (key == 1) {
+                  	model_graph("temp", 0);
+                } else if (key == 2) {
+                  	model_graph("temp", 1);
+                } else if (key == 3) {
+                  	model_graph("humidity", 0);
+                } else if (key == 4) {
+                  	model_graph("humidity", 1);
+                } else if (key == 5) {
+                  	model_graph("windspeed", 0);
+                } else if (key == 6) {
+                  	model_graph("windspeed", 1);
+                } 
+            });
+	} 
+
+    function model_graph(type, do_average) {
+		var points;
+
+  		points = usageData.map(function (bike) {
+      			return { x: Number(bike[type]), y: Number(bike.count) };
+  		});
+
+  		if(do_average === 1)
+  			points = average(points);
+
+	   	var height = 500;
+	    var width = d3.select("#tplot").style("width");
+	     	 width = +width.substring(0, width.length - 2);
+	    width -= 300;
+	    var padding = 50;
+
+	    var count_label = "Count";
+
+    	var model_svg = d3.select("#tplot").append("svg")
+  		.attr("height", height)
+  		.attr("width", width);
+
+		var xDomain = d3.extent(points, function (d) {return d.x; });
+		var yDomain = d3.extent(points, function (d) {return d.y; });
+
+ 		var xScale = d3.scale.linear().domain(xDomain).range([padding, width - padding]);
+        var yScale = d3.scale.linear().domain(yDomain).range([height - padding, padding]);
+
+
+	      //Define X axis
+	    var xAxis = d3.svg.axis()
+	                .scale(xScale)
+	                .orient("bottom");
+
+	      //Define Y axis
+	    var yAxis = d3.svg.axis()
+	                .scale(yScale)
+	                .orient("left");
+
+
+  		var circles = model_svg.selectAll("circle").data(points).enter()
+  			.append("circle")
+			.attr("cx", function (d) {  return xScale(d.x); })
+			.attr("cy", function (d) { return yScale(d.y); })
+			.attr("r", 3)
+			.style("opacity", "0.5")
+			.style("fill","#2ca25f");
+
+      //Create X axis
+         model_svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(0," + (height - padding) + ")")
+        .call(xAxis);
+      
+      //Create Y axis
+        model_svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(" + padding + ",0)")
+        .call(yAxis);
+
+        // add titles  to the axes
+   	    model_svg.append("text")
+        .attr("text-anchor", "middle") 
+        .attr("transform", "translate(" + (padding / 3) + "," + (height / 9) + ")rotate(-90)") 
+        .text(count_label);
+
+        model_svg.append("text")
+        .attr("text-anchor", "middle") 
+        .attr("transform", "translate(" + (width * 7/8 ) + "," + (height - (padding / 4 )) + ")") 
+        .text(type);
+
+
+
+	    var currentExtent = [[50, 50], [width - 50, height - 50]];
+
+	    function inExtent(point) {
+		    // Is the point in the current extent?
+		    var mapX = xScale(point.x);
+		    var mapY = yScale(point.y);
+		    
+		    return mapX > currentExtent[0][0] &&
+		      mapX < currentExtent[1][0] &&
+		      mapY > currentExtent[0][1] &&
+		      mapY < currentExtent[1][1];
+	      
+	    }
+
+  // Calculate the slope and intercept.
+  
+    function leastSquares() {
+	    var model = {};
+
+	    // Filter the points by the current extent
+	    var activePoints = points.filter(inExtent);
+
+	    var meanX = d3.mean(activePoints, function (d) { 
+	      return d.x;
+	    });
+
+	    var meanY = d3.mean(activePoints, function (d) { 
+	      return d.y;
+	    });
+
+	    model.slope = d3.sum(activePoints, function (d) {
+	      return (d.x - meanX) * (d.y - meanY);
+	    });
+
+	    model.slope /= d3.sum(activePoints, function (d) {
+	      return (d.x - meanX) * (d.x - meanX);
+	    });
+
+	    model.intercept = meanY - model.slope * meanX;
+	  
+	    return model;
+    }
+
+    var model = leastSquares();
+
+    var regressionLine = model_svg.append("line")
+    .attr("x1", xScale(xDomain[0]))
+    .attr("y1", yScale(model.slope * xDomain[0] + model.intercept))
+    .attr("x2", xScale(xDomain[1]))
+    .attr("y2", yScale(model.slope * xDomain[1] + model.intercept))
+    .style("stroke", "#993333");
+
+  	function moveLine() {
+	    // Move the regression line
+	    regressionLine
+	    .attr("y1", yScale(model.slope * xDomain[0] + model.intercept))
+	    .attr("y2", yScale(model.slope * xDomain[1] + model.intercept));
+  	}
+
+  	var brush = d3.svg.brush()
+      .x(d3.scale.identity().domain([0, width]))
+      .y(d3.scale.identity().domain([0, height]))
+      .extent(currentExtent)
+      .on("brush", brushed);
+
+    function brushed () {
+	    // Act when the "brush" event occurs
+	    currentExtent = brush.extent();
+	    model = leastSquares();
+	    moveLine();
+    }
+
+  	model_svg.append("g")
+      .attr("class", "brush")
+      .call(brush);
+
+  	brushed();
+
+	}
+
+	</script>
+
+
+	<div class="row">
+	<div class="dividingLine"></div>
+	<h1 style="text-align: center">Now, Season and Weather are considered together</h1>
+	<p style="text-align: center; font-style:italic;font-size:1.2em;">Apparently, people would choose to ride to work or back home in warmer season and sunny days.<br> To maintain good visualization, we plot both average bike rentals and the whole data. <br>Click the button to view the graph you prefer!</p>
+	<div class="dividingLine"></div>
+	<div id = "HM" style="text-align:center"></div>
+	<br>
+	<div id = "heatmap" style="text-align:center"></div>
+	<div style="margin-top: 45px;">
+	</div>
+	</div>
+
+    <script>
+    heatMap();
+    function heatMap(){
+    	//console.log("hello");
+    	var selectHeatMap = d3.select("#HM");
+    	selectHeatMap.append("text")
+    		.text("              Select a visualization type you prefer: ");
+    	selectHeatMap.append("button")
+			.text("AverageHeatMap")
+			.attr("id", "ahm")
+			//.attr("disabled", true)
+			.on("click", function(){
+				//console.log(rawData);
+				AverageHeatMap();
+				$.smoothScroll({
+                    scrollTarget: $('#heatmap')
+                });
+			});
+		selectHeatMap.append("text")
+    		.text("      ");
+		selectHeatMap.append("button")
+			.text("ScatterHeatMap")
+			.attr("id", "shm")
+			//.attr("disabled", true)
+			.on("click", function(){
+				ScatterHeatMap();
+				$.smoothScroll({
+                    scrollTarget: $('#heatmap')
+                });
+			});
+    }
+    AverageHeatMap();
+    function AverageHeatMap(){
+    	document.getElementById("heatmap").innerHTML = "";
+    	var width = d3.select("#heatmap").style("width");
+      		width = +width.substring(0, width.length - 2);
+		var margin = {left : 300, right: 300, bottom: 50, top :50 };
+		//var width = 1000;???
+		var height = 500;
+
+		var div = d3.select("#heatmap");
+		div.select("svg").remove();
+		var svg = div.append("svg")
+			.attr("height", height)
+			.attr("width", width);
+
+		d3.csv("data/bike_usage.csv",function(bicycle){
+
+		bicycle.forEach(function(d){
+				d.season = Number(d.season);
+	 			d.weather = Number(d.weather);
+				d.count = Number(d.count);
+		});
+
+		//console.log(bicycle);
+		var set11 = bicycle.filter(function(d) { return d.season == 1 && d.weather == 1; }),
+		set12 = bicycle.filter(function(d) { return d.season == 1 && d.weather == 2; }),
+		set13 = bicycle.filter(function(d) { return d.season == 1 && d.weather == 3; }),
+		set14 = bicycle.filter(function(d) { return d.season == 1 && d.weather == 4; }),
+		set21 = bicycle.filter(function(d) { return d.season == 2 && d.weather == 1; }),
+		set22 = bicycle.filter(function(d) { return d.season == 2 && d.weather == 2; }),
+		set23 = bicycle.filter(function(d) { return d.season == 2 && d.weather == 3; }),
+		set24 = bicycle.filter(function(d) { return d.season == 2 && d.weather == 4; }),
+		set31 = bicycle.filter(function(d) { return d.season == 3 && d.weather == 1; }),
+		set32 = bicycle.filter(function(d) { return d.season == 3 && d.weather == 2; }),
+		set33 = bicycle.filter(function(d) { return d.season == 3 && d.weather == 3; }),
+		set34 = bicycle.filter(function(d) { return d.season == 3 && d.weather == 4; }),
+		set41 = bicycle.filter(function(d) { return d.season == 4 && d.weather == 1; }),
+		set42 = bicycle.filter(function(d) { return d.season == 4 && d.weather == 2; }),
+		set43 = bicycle.filter(function(d) { return d.season == 4 && d.weather == 3; }),
+		set44 = bicycle.filter(function(d) { return d.season == 4 && d.weather == 4; });
+
+		var averageset = [
+		{
+			season: "Spring",
+			weather: "Clear, Few Clouds",
+			average: d3.mean(set11, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Spring",
+			weather: "Mist + Cloudy",
+			average: d3.mean(set12, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Spring",
+			weather: "Light Snow, Light Rain, Thunderstorm, Scattered clouds",
+			average: d3.mean(set13, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Spring",
+			weather: "Heavy Rain, Ice Pallets, Thunderstorm, Mist, Snow, Fog",
+			average: d3.mean(set14, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Summer",
+			weather: "Clear, Few Clouds",
+			average: d3.mean(set21, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Summer",
+			weather: "Mist + Cloudy",
+			average: d3.mean(set22, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Summer",
+			weather: "Light Snow, Light Rain, Thunderstorm, Scattered clouds",
+			average: d3.mean(set23, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Summer",
+			weather: "Heavy Rain, Ice Pallets, Thunderstorm, Mist, Snow, Fog",
+			average: d3.mean(set24, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Fall",
+			weather: "Clear, Few Clouds",
+			average: d3.mean(set31, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Fall",
+			weather: "Mist + Cloudy",
+			average: d3.mean(set32, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Fall",
+			weather: "Light Snow, Light Rain, Thunderstorm, Scattered clouds",
+			average: d3.mean(set33, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Fall",
+			weather: "Heavy Rain, Ice Pallets, Thunderstorm, Mist, Snow, Fog",
+			average: d3.mean(set34, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Winter",
+			weather: "Clear, Few Clouds",
+			average: d3.mean(set41, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Winter",
+			weather: "Mist + Cloudy",
+			average: d3.mean(set42, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Winter",
+			weather:"Light Snow, Light Rain, Thunderstorm, Scattered clouds",
+			average: d3.mean(set43, function(d){
+				return d.count;
+			})
+		},
+		{
+			season: "Winter",
+			weather: "Heavy Rain, Ice Pallets, Thunderstorm, Mist, Snow, Fog",
+			average: d3.mean(set44, function(d){
+				return d.count;
+			})
+		}
+		];
+
+		var xScale = d3.scale.ordinal()
+		.domain(averageset.map(function(d){
+			return d.season;
+		}))
+		.rangeRoundBands([margin.left, width - margin.right]);
+
+		var yScale = d3.scale.ordinal()
+		.domain(averageset.map(function(d){
+			return d.weather;
+		}))
+		.rangeRoundBands([height - margin.bottom, margin.top]);
+
+		var colorScale = d3.scale.linear()
+		.domain(d3.extent(averageset, function(d){
+			return d.average;
+		}))
+		.range(["#e5f5f9","#2ca25f"]);///Color!!!!
+
+		var xAxis = d3.svg.axis() 
+		.scale(xScale)
+		.orient("bottom");
+
+		var yAxis = d3.svg.axis()
+		.scale(yScale)
+		.orient("left");
+
+		var legendDomain = [colorScale(60), colorScale(100), colorScale(140), colorScale(180), colorScale(220), colorScale(260)];
+		var legendLable = [60, 100, 140, 180, 220, 260];
+		var averageFormat = d3.format(".0f");
+		var tip = d3.tip()
+                .attr("class", "tooltip")
+                //.offset([-10, 0])
+               .html(function(d){
+               	  if(d.average != null){
+               	  	return "<strong>Count:</strong> <span style='color:red'>" + averageFormat(d.average) + "</span>";
+               	  }
+               	  else{
+               	  	return "<strong>Count:</strong> <span style='color:red'>" + 0 + "</span>";
+               	  }
+                  
+               });
+
+		svg.selectAll(".rect")
+			.data(averageset)
+			.enter().append("rect")
+			//.attr("class", "circle")
+			.attr("x", function(d) { 
+				return xScale(d.season); 
+			})
+			.attr("y", function(d) { 
+				return yScale(d.weather);
+			})
+			.attr("width", (width - margin.left - margin.right)/4)
+			.attr("height", (height - margin.top - margin.bottom)/4)
+			.style("fill",function(d){
+				//var bicycleRent = averageset.get(d.season);
+				return colorScale(d.average);
+				//else return "#808080"; 
+			})
+			.style("stroke-width","1px")
+			.style("stroke","#fff")
+			.on("click", tip.show)
+			.on("mouseout", tip.hide);
+
+		svg.call(tip);
+
+		svg.append("g").attr("class","axis")
+		.attr("transform","translate(0, " + (height - margin.bottom) + ")")
+		.call(xAxis);
+
+		svg.append("g").attr("class","axis")
+		.attr("transform","translate(" + margin.left + " , 0)")
+		.call(yAxis);
+
+		svg.append("text")
+		.attr("transform", "rotate(-90)")
+		.attr("x", 0-height/2)
+		.attr("y", 0-margin.left/10)
+		.attr("dy", "2em")
+		.style("text-anchor", "middle")
+		.text("Weather");
+
+		svg.append("text")
+		.attr("x",width/2)
+		.attr("y",height - margin.bottom/4)
+		.style("text-anchor", "middle")
+		.text("Season");
+
+		svg.append("text")
+		.attr("class","graphTitle")
+		.attr("x",width/2)
+		.attr("y",margin.top/2)
+		.style("text-anchor", "middle")
+		.style("font-size", "20")
+		.text("Interaction between Season & Weather");
+
+		var legend = svg.selectAll(".legend")
+		.data(legendDomain)
+		.enter().append("g")
+		.attr("class", "legend")
+		.attr("transform", function(d, i){ 
+			return "translate(" + (width - margin.right + 20) + "," +  (margin.top + i * 20) + ")"; });
+
+		legend.append("rect")
+		.attr("width", 30)
+		.attr("height", 22)
+		.style("fill", function(d,i){
+			return legendDomain[i]
+		});
+
+		legend.append("text")
+		.attr("x", 35)
+		.attr("y", 10)
+		.attr("dy", ".5em")
+		.text(function(d,i){
+			return legendLable[i];
+		});
+
+    });}
+
+
+  function ScatterHeatMap(){
+	document.getElementById("heatmap").innerHTML = "";
+	var margin = {left : 300, right: 300, bottom: 50, top :50 };
+	var width = d3.select("#heatmap").style("width");
+     	 width = +width.substring(0, width.length - 2);
+	var height = 500;
+
+	var div = d3.select("#heatmap");
+	div.select("svg").remove();
+	var svg = div.append("svg")
+		.attr("height", height)
+		.attr("width", width);
+
+	d3.csv("data/bike_usage.csv",function(bicycle){
+
+		bicycle.forEach(function(d){
+				d.season = Number(d.season);
+	 			d.weather = Number(d.weather);
+				d.count = Number(d.count);
+		});
+
+	bicycle.forEach(function(d){
+					if (d.season == 1) return (d.season = "Spring");
+					else if (d.season == 2) return (d.season = "Summer");
+					else if (d.season == 3) return (d.season = "Fall");
+					else if (d.season == 4) return (d.season = "Winter");
+	});
+
+	var text3 = "Light Snow, Light Rain, Thunderstorm, Scattered clouds";
+	bicycle.forEach(function(d){
+					if (d.weather == 1) return (d.weather = "Clear, Few clouds");
+					else if (d.weather == 2) return (d.weather = "Mist + Cloudy")
+					else if (d.weather == 3) return (d.weather = text3);
+					else if (d.weather == 4) return (d.weather = "Heavy Rain, Ice Pallets, Thunderstorm, Mist, Snow, Fog");
+				});
+
+	var xScale = d3.scale.ordinal()
+	.domain(bicycle.map(function(d){
+		return d.season;
+	}))
+	.rangeRoundBands([margin.left, width - margin.right]);
+
+	var yScale = d3.scale.ordinal()
+	.domain(bicycle.map(function(d){
+		return d.weather;
+	}))
+	.rangeRoundBands([height - margin.bottom, margin.top]);
+
+	var colorScale = d3.scale.linear()
+	.domain(d3.extent(bicycle, function(d){
+		return d.count;
+	}))
+	.range(["#e5f5f9","#2ca25f"]);
+
+	var xAxis = d3.svg.axis() 
+	.scale(xScale)
+	.orient("bottom");
+
+	var yAxis = d3.svg.axis()
+	.scale(yScale)
+	.orient("left");
+
+
+	svg.selectAll("circle")
+  	.data(bicycle)
+	.enter().append("circle")
+	.attr("cx", function(d,i) { 
+  		return Math.max(xScale(d.season)+ Math.random() * ((width - margin.left - margin.right)/4),              margin.left + 6); 
+  	})
+  	.attr("cy", function(d,i) { 
+  		return Math.min(yScale(d.weather) + Math.random() * ((height - margin.bottom - margin.top)/4),           height - margin.bottom - 6);
+  	})
+  	.attr("r", 3)
+  	.style("fill",function(d,i){
+  		return colorScale(d.count);
+  		})
+  	.on("click", function(d){
+  		console.log(d.count);
+  	});
+
+	svg.append("g").attr("class","axis")
+	.attr("transform","translate(0, " + (height - margin.bottom) + ")")
+	.call(xAxis);
+
+	svg.append("g").attr("class","axis")
+	.attr("transform","translate(" + margin.left + " , 0)")
+	.call(yAxis);
+
+	svg.append("text")
+	.attr("transform", "rotate(-90)")
+	.attr("x", 0-height/2)
+	.attr("y", 0-margin.left/10)
+	.attr("dy", "2em")
+	.style("text-anchor", "middle")
+	.text("Weather");
+
+	svg.append("text")
+	.attr("x",width/2)
+	.attr("y",height - margin.bottom/4)
+	.style("text-anchor", "middle")
+	.text("Season");
+
+	svg.append("text")
+	.attr("class","graphTitle")
+	.attr("x",width/2)
+	.attr("y",margin.top/2)
+	.style("text-anchor", "middle")
+	.style("font-size", "20")
+	.text("Interaction between Season & Weather");
+
+	var legend = svg.selectAll(".legend")
+	.data(colorScale.ticks(10))
+	.enter().append("g")
+	.attr("class", "legend")
+	.attr("transform", function(d, i){ 
+		return "translate(" + (width - margin.right + 20) + "," +  (margin.top + i * 20) + ")"; });
+
+	legend.append("rect")
+	.attr("width", 30)
+	.attr("height", 22)
+	.style("fill", colorScale);
+
+	legend.append("text")
+	.attr("x", 35)
+	.attr("y", 10)
+	.attr("dy", ".5em")
+	.text(String);
+});}
+    </script>
+
+
+</div>
+</body>
+</html>
